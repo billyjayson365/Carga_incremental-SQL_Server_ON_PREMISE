@@ -22,6 +22,7 @@ DROP TABLE IF EXISTS dbo.DimCliente;
 DROP TABLE IF EXISTS dbo.DimProducto;
 DROP TABLE IF EXISTS dbo.DimTienda;
 DROP TABLE IF EXISTS dbo.ControlCarga;
+DROP TABLE IF EXISTS dbo.tmp_stg_Ventas_process;
 GO
 
 
@@ -991,5 +992,52 @@ VALUES
 
     '2026-09-29 09:45:00.000',
     NULL
+);
+
+/* ============================================================
+   STAGING PROCESS
+============================================================ */
+
+CREATE TABLE dbo.tmp_stg_Ventas_process
+(
+    FechaVenta                      DATE NOT NULL,
+    CodigoTienda                    VARCHAR(20) NOT NULL,
+    NumeroTicket                    VARCHAR(30) NOT NULL,
+    NumeroLinea                     INT NOT NULL,
+
+    TipoDocumento                   VARCHAR(10) NOT NULL,
+    NumeroDocumento                 VARCHAR(20) NOT NULL,
+
+    Nombres                         VARCHAR(100) NOT NULL,
+    Apellidos                       VARCHAR(100) NOT NULL,
+    Email                           VARCHAR(150) NULL,
+    Telefono                        VARCHAR(20) NULL,
+    CiudadCliente                   VARCHAR(100) NULL,
+    EstadoCliente                   VARCHAR(20) NOT NULL,
+
+    CodigoProducto                  VARCHAR(30) NOT NULL,
+    NombreProducto                  VARCHAR(150) NOT NULL,
+    Categoria                       VARCHAR(100) NOT NULL,
+    Subcategoria                    VARCHAR(100) NULL,
+    Marca                           VARCHAR(100) NULL,
+    PrecioLista                     DECIMAL(12,2) NOT NULL,
+    EstadoProducto                  VARCHAR(20) NOT NULL,
+
+    NombreTienda                    VARCHAR(150) NOT NULL,
+    CiudadTienda                    VARCHAR(100) NOT NULL,
+    DepartamentoTienda              VARCHAR(100) NOT NULL,
+    TipoTienda                      VARCHAR(30) NOT NULL,
+    EstadoTienda                    VARCHAR(20) NOT NULL,
+
+    Cantidad                        INT NOT NULL,
+    PrecioUnitario                  DECIMAL(12,2) NOT NULL,
+    MontoDescuento                  DECIMAL(14,2) NOT NULL,
+
+    Canal                           VARCHAR(30) NOT NULL,
+    MedioPago                       VARCHAR(30) NOT NULL,
+    EstadoVenta                     VARCHAR(30) NOT NULL,
+
+    FechaInsercionOrigen            DATETIME2(3) NOT NULL,
+    FechaUltimaModificacionOrigen   DATETIME2(3) NULL
 );
 GO
