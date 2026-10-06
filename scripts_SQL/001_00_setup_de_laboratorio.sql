@@ -27,17 +27,20 @@ CREACIÓN DE TABLAS TEMPORALES CON DATOS SIMULADOS
 ==================================================
 */
 
+
+--AUXILIAR CLIENTES
+
 CREATE TABLE #ClienteCatalogo
 (
-    IdCliente       INT NOT NULL,
-    TipoDocumento   VARCHAR(10) NOT NULL,
-    NumeroDocumento VARCHAR(20) NOT NULL,
-    Nombres         VARCHAR(100) NOT NULL,
-    Apellidos       VARCHAR(100) NOT NULL,
-    Email           VARCHAR(150) NULL,
-    Telefono        VARCHAR(20) NULL,
-    Ciudad          VARCHAR(100) NULL,
-    EstadoCliente   VARCHAR(20) NOT NULL
+    IdCliente          INT NOT NULL,
+    TipoDocumento      VARCHAR(10) NOT NULL,
+    NumeroDocumento    VARCHAR(20) NOT NULL,
+    Nombres            VARCHAR(100) NOT NULL,
+    Apellidos          VARCHAR(100) NOT NULL,
+    Email              VARCHAR(150) NULL,
+    Telefono           VARCHAR(20) NULL,
+    Ciudad             VARCHAR(100) NULL,
+    EstadoCliente      VARCHAR(20) NOT NULL
 );
 
 
@@ -50,6 +53,82 @@ CREATE TABLE #ClienteCatalogo
     SELECT N + 1
     FROM Numeros
     WHERE N < 130
+),
+
+Clientes AS
+(
+    SELECT
+        N,
+
+        CHOOSE(
+            ((N - 1) % 20) + 1,
+            'ANA',
+            'LUIS',
+            'MARIA',
+            'CARLOS',
+            'DIEGO',
+            'SOFIA',
+            'JORGE',
+            'CAMILA',
+            'MIGUEL',
+            'VALERIA',
+            'ANDREA',
+            'RENATO',
+            'PAOLA',
+            'FERNANDO',
+            'DANIELA',
+            'RICARDO',
+            'LUCIANA',
+            'SEBASTIAN',
+            'MELISSA',
+            'ALONSO'
+        ) AS Nombres,
+
+        CHOOSE(
+            (((N * 3) - 1) % 17) + 1,
+            'TORRES',
+            'MENDOZA',
+            'ROJAS',
+            'SALAZAR',
+            'FLORES',
+            'RAMIREZ',
+            'CASTILLO',
+            'VARGAS',
+            'PAREDES',
+            'CHAVEZ',
+            'GONZALES',
+            'ESPINOZA',
+            'NAVARRO',
+            'CABRERA',
+            'FERNANDEZ',
+            'VASQUEZ',
+            'AGUILAR'
+        ) AS ApellidoPaterno,
+
+        CHOOSE(
+            (((N * 7) - 1) % 19) + 1,
+            'GARCIA',
+            'PEREZ',
+            'DIAZ',
+            'LOPEZ',
+            'SILVA',
+            'REYES',
+            'CRUZ',
+            'SOTO',
+            'MEDINA',
+            'VEGA',
+            'HERRERA',
+            'ROMERO',
+            'MORALES',
+            'RAMOS',
+            'ORTIZ',
+            'NUÑEZ',
+            'CASTRO',
+            'MENDOZA',
+            'ROJAS'
+        ) AS ApellidoMaterno
+
+    FROM Numeros
 )
 
 INSERT INTO #ClienteCatalogo
@@ -80,54 +159,22 @@ SELECT
             CAST(70000000 + N AS VARCHAR(20))
     END,
 
-    CHOOSE(
-        ((N - 1) % 10) + 1,
-        'ANA',
-        'LUIS',
-        'MARIA',
-        'CARLOS',
-        'DIEGO',
-        'SOFIA',
-        'JORGE',
-        'CAMILA',
-        'MIGUEL',
-        'VALERIA'
-    ),
+    Nombres,
 
     CONCAT(
-        CHOOSE(
-            ((N * 3 - 1) % 10) + 1,
-            'TORRES',
-            'MENDOZA',
-            'ROJAS',
-            'SALAZAR',
-            'FLORES',
-            'RAMIREZ',
-            'CASTILLO',
-            'VARGAS',
-            'PAREDES',
-            'CHAVEZ'
-        ),
+        ApellidoPaterno,
         ' ',
-        CHOOSE(
-            ((N * 7 - 1) % 10) + 1,
-            'GARCIA',
-            'PEREZ',
-            'DIAZ',
-            'LOPEZ',
-            'SILVA',
-            'REYES',
-            'CRUZ',
-            'SOTO',
-            'MEDINA',
-            'VEGA'
-        )
+        ApellidoMaterno
     ),
 
-    CONCAT(
-        'cliente',
-        RIGHT('000' + CAST(N AS VARCHAR(3)), 3),
-        '@correo.pe'
+    LOWER(
+        CONCAT(
+            Nombres,
+            '.',
+            ApellidoPaterno,
+            N,
+            '@correo.pe'
+        )
     ),
 
     CONCAT(
@@ -140,7 +187,7 @@ SELECT
     ),
 
     CHOOSE(
-        ((N - 1) % 8) + 1,
+        ((N - 1) % 10) + 1,
         'LIMA',
         'AREQUIPA',
         'CUSCO',
@@ -148,7 +195,9 @@ SELECT
         'PIURA',
         'ICA',
         'HUARAZ',
-        'TACNA'
+        'TACNA',
+        'CHICLAYO',
+        'HUANCAYO'
     ),
 
     CASE
@@ -156,21 +205,24 @@ SELECT
         ELSE 'ACTIVO'
     END
 
-FROM Numeros
+FROM Clientes
 
 OPTION (MAXRECURSION 0);
 
+
+
 --AUXILIAR PRODUCTOS
+
 CREATE TABLE #ProductoCatalogo
 (
-    IdProducto       INT NOT NULL,
-    CodigoProducto   VARCHAR(30) NOT NULL,
-    NombreProducto   VARCHAR(150) NOT NULL,
-    Categoria        VARCHAR(100) NOT NULL,
-    Subcategoria     VARCHAR(100) NULL,
-    Marca            VARCHAR(100) NULL,
-    PrecioLista      DECIMAL(12,2) NOT NULL,
-    EstadoProducto   VARCHAR(20) NOT NULL
+    IdProducto        INT NOT NULL,
+    CodigoProducto    VARCHAR(30) NOT NULL,
+    NombreProducto    VARCHAR(150) NOT NULL,
+    Categoria         VARCHAR(100) NOT NULL,
+    Subcategoria      VARCHAR(100) NULL,
+    Marca             VARCHAR(100) NULL,
+    PrecioLista       DECIMAL(12,2) NOT NULL,
+    EstadoProducto    VARCHAR(20) NOT NULL
 );
 
 
@@ -266,44 +318,49 @@ FROM Numeros
 OPTION (MAXRECURSION 0);
 
 
+
 --AUXILIAR TIENDAS
+
 CREATE TABLE #TiendaCatalogo
 (
-    IdTienda       INT NOT NULL,
-    CodigoTienda   VARCHAR(20) NOT NULL,
-    NombreTienda   VARCHAR(150) NOT NULL,
-    Ciudad         VARCHAR(100) NOT NULL,
-    Departamento   VARCHAR(100) NOT NULL,
-    TipoTienda     VARCHAR(30) NOT NULL,
-    EstadoTienda   VARCHAR(20) NOT NULL
+    IdTienda        INT NOT NULL,
+    CodigoTienda    VARCHAR(20) NOT NULL,
+    NombreTienda    VARCHAR(150) NOT NULL,
+    Ciudad          VARCHAR(100) NOT NULL,
+    Departamento    VARCHAR(100) NOT NULL,
+    TipoTienda      VARCHAR(30) NOT NULL,
+    EstadoTienda    VARCHAR(20) NOT NULL
 );
 
 
 INSERT INTO #TiendaCatalogo
 VALUES
-(1,  'LIM01', 'TIENDA LIMA CENTRO',       'LIMA',       'LIMA',       'FISICA', 'ACTIVO'),
-(2,  'LIM02', 'TIENDA LIMA NORTE',        'LIMA',       'LIMA',       'FISICA', 'ACTIVO'),
-(3,  'AQP01', 'TIENDA AREQUIPA MALL',     'AREQUIPA',   'AREQUIPA',   'FISICA', 'ACTIVO'),
-(4,  'CUS01', 'TIENDA CUSCO CENTRO',      'CUSCO',      'CUSCO',      'FISICA', 'ACTIVO'),
-(5,  'TRU01', 'TIENDA TRUJILLO MALL',     'TRUJILLO',   'LA LIBERTAD','FISICA', 'ACTIVO'),
-(6,  'PIU01', 'TIENDA PIURA CENTRO',      'PIURA',      'PIURA',      'FISICA', 'ACTIVO'),
-(7,  'CHI01', 'TIENDA CHICLAYO',          'CHICLAYO',   'LAMBAYEQUE', 'FISICA', 'ACTIVO'),
-(8,  'ICA01', 'TIENDA ICA',               'ICA',        'ICA',        'FISICA', 'ACTIVO'),
-(9,  'HUA01', 'TIENDA HUARAZ',            'HUARAZ',     'ANCASH',     'FISICA', 'ACTIVO'),
-(10, 'TAC01', 'TIENDA TACNA',             'TACNA',      'TACNA',      'FISICA', 'ACTIVO'),
-(11, 'CAJ01', 'TIENDA CAJAMARCA',         'CAJAMARCA',  'CAJAMARCA',  'FISICA', 'ACTIVO'),
-(12, 'PUN01', 'TIENDA PUNO',              'PUNO',       'PUNO',       'FISICA', 'ACTIVO'),
-(13, 'TAR01', 'TIENDA TARAPOTO',          'TARAPOTO',   'SAN MARTIN', 'FISICA', 'ACTIVO'),
-(14, 'LOR01', 'TIENDA IQUITOS',           'IQUITOS',    'LORETO',     'FISICA', 'ACTIVO'),
-(15, 'JUN01', 'TIENDA HUANCAYO',          'HUANCAYO',   'JUNIN',      'FISICA', 'ACTIVO'),
-(16, 'AYA01', 'TIENDA AYACUCHO',          'AYACUCHO',   'AYACUCHO',   'FISICA', 'ACTIVO'),
-(17, 'MOQ01', 'TIENDA MOQUEGUA',          'MOQUEGUA',   'MOQUEGUA',   'FISICA', 'ACTIVO');
+(1,  'LIM01', 'TIENDA LIMA CENTRO',       'LIMA',       'LIMA',        'FISICA', 'ACTIVO'),
+(2,  'LIM02', 'TIENDA LIMA NORTE',        'LIMA',       'LIMA',        'FISICA', 'ACTIVO'),
+(3,  'AQP01', 'TIENDA AREQUIPA MALL',     'AREQUIPA',   'AREQUIPA',    'FISICA', 'ACTIVO'),
+(4,  'CUS01', 'TIENDA CUSCO CENTRO',      'CUSCO',      'CUSCO',       'FISICA', 'ACTIVO'),
+(5,  'TRU01', 'TIENDA TRUJILLO MALL',     'TRUJILLO',   'LA LIBERTAD', 'FISICA', 'ACTIVO'),
+(6,  'PIU01', 'TIENDA PIURA CENTRO',      'PIURA',      'PIURA',       'FISICA', 'ACTIVO'),
+(7,  'CHI01', 'TIENDA CHICLAYO',          'CHICLAYO',   'LAMBAYEQUE',  'FISICA', 'ACTIVO'),
+(8,  'ICA01', 'TIENDA ICA',               'ICA',        'ICA',         'FISICA', 'ACTIVO'),
+(9,  'HUA01', 'TIENDA HUARAZ',            'HUARAZ',     'ANCASH',      'FISICA', 'ACTIVO'),
+(10, 'TAC01', 'TIENDA TACNA',             'TACNA',      'TACNA',       'FISICA', 'ACTIVO'),
+(11, 'CAJ01', 'TIENDA CAJAMARCA',         'CAJAMARCA',  'CAJAMARCA',   'FISICA', 'ACTIVO'),
+(12, 'PUN01', 'TIENDA PUNO',              'PUNO',       'PUNO',        'FISICA', 'ACTIVO'),
+(13, 'TAR01', 'TIENDA TARAPOTO',          'TARAPOTO',   'SAN MARTIN',  'FISICA', 'ACTIVO'),
+(14, 'LOR01', 'TIENDA IQUITOS',           'IQUITOS',    'LORETO',      'FISICA', 'ACTIVO'),
+(15, 'JUN01', 'TIENDA HUANCAYO',          'HUANCAYO',   'JUNIN',       'FISICA', 'ACTIVO'),
+(16, 'AYA01', 'TIENDA AYACUCHO',          'AYACUCHO',   'AYACUCHO',    'FISICA', 'ACTIVO'),
+(17, 'MOQ01', 'TIENDA MOQUEGUA',          'MOQUEGUA',   'MOQUEGUA',    'FISICA', 'ACTIVO');
+
 
 /*
 ================================
 CREACIÓN DE TABLA DE CONTROL
 ================================
 */
+
+
 CREATE TABLE dbo.ControlCarga
 (
     NombreProceso           VARCHAR(100) NOT NULL,
@@ -320,6 +377,7 @@ INSERT INTO dbo.ControlCarga
     FechaUltimaEjecucion,
     EstadoUltimaEjecucion
 )
+
 VALUES
 (
     'ETL_VENTAS',
@@ -328,13 +386,16 @@ VALUES
     'OK'
 );
 
+
 /*
 ===================================================
 CREACIÓN Y CARGA DE DATOS DE TABLAS DE DIMENSIONES
 ===================================================
 */
 
---DIM CLIENTE: CREACIÓN Y CARGA DE DATOS
+
+--DIM CLIENTE SCD2
+--HASH KEY: TipoDocumento | NumeroDocumento
 
 CREATE TABLE dbo.DimCliente
 (
@@ -359,6 +420,7 @@ CREATE TABLE dbo.DimCliente
     FechaUltimaModificacionDW    DATETIME2(3) NULL
 );
 
+
 INSERT INTO dbo.DimCliente
 (
     ClienteHashKey,
@@ -398,109 +460,26 @@ SELECT
 
     Nombres,
     Apellidos,
-
-    CONCAT(
-        'historico',
-        RIGHT('000' + CAST(IdCliente AS VARCHAR(3)), 3),
-        '@correo.pe'
-    ),
-
-    CONCAT(
-        '8',
-        RIGHT(
-            '00000000' +
-            CAST(10000000 + IdCliente AS VARCHAR(8)),
-            8
-        )
-    ),
-
-    CASE
-        WHEN Ciudad = 'LIMA' THEN 'CALLAO'
-        ELSE 'LIMA'
-    END,
-
+    Email,
+    Telefono,
+    Ciudad,
     EstadoCliente,
 
     '2026-01-01 00:00:00.000',
-    '2026-05-31 23:59:59.999',
-    0,
-
-    '2026-01-01 02:00:00.000',
-    '2026-06-01 00:00:00.000'
-
-FROM #ClienteCatalogo
-
-WHERE IdCliente <= 20;
-
-INSERT INTO dbo.DimCliente
-(
-    ClienteHashKey,
-
-    TipoDocumento,
-    NumeroDocumento,
-
-    Nombres,
-    Apellidos,
-    Email,
-    Telefono,
-    Ciudad,
-    EstadoCliente,
-
-    FechaInicioVigencia,
-    FechaFinVigencia,
-    EsActual,
-
-    FechaInsercionDW,
-    FechaUltimaModificacionDW
-)
-
-SELECT
-
-    HASHBYTES
-    (
-        'SHA2_256',
-        CONCAT(
-            UPPER(TRIM(TipoDocumento)),
-            '|',
-            TRIM(NumeroDocumento)
-        )
-    ),
-
-    TipoDocumento,
-    NumeroDocumento,
-
-    Nombres,
-    Apellidos,
-    Email,
-    Telefono,
-    Ciudad,
-    EstadoCliente,
-
-    CASE
-        WHEN IdCliente <= 20
-            THEN CAST('2026-06-01 00:00:00.000' AS DATETIME2(3))
-        ELSE
-            CAST('2026-01-01 00:00:00.000' AS DATETIME2(3))
-    END,
-
     '9999-12-31 23:59:59.999',
-
     1,
 
-    CASE
-        WHEN IdCliente <= 20
-            THEN CAST('2026-06-01 00:10:00.000' AS DATETIME2(3))
-        ELSE
-            CAST('2026-01-01 02:00:00.000' AS DATETIME2(3))
-    END,
-
+    '2026-01-01 02:00:00.000',
     NULL
 
 FROM #ClienteCatalogo
 
 WHERE IdCliente <= 120;
 
---DIM PRODUCTO
+
+
+--DIM PRODUCTO SCD1
+--HASH KEY: CodigoProducto
 
 CREATE TABLE dbo.DimProducto
 (
@@ -558,6 +537,11 @@ FROM #ProductoCatalogo
 
 WHERE IdProducto <= 80;
 
+
+
+--DIM TIENDA SCD1
+--HASH KEY: CodigoTienda
+
 CREATE TABLE dbo.DimTienda
 (
     TiendaHashKey                 BINARY(32) NOT NULL,
@@ -573,7 +557,6 @@ CREATE TABLE dbo.DimTienda
     FechaUltimaModificacionDW     DATETIME2(3) NULL
 );
 
---DIM TIENDA
 
 INSERT INTO dbo.DimTienda
 (
@@ -612,7 +595,16 @@ FROM #TiendaCatalogo
 
 WHERE IdTienda <= 15;
 
---FACT VENTAS
+
+/*
+================================
+CREACIÓN Y CARGA DE FACT VENTAS
+================================
+*/
+
+
+--HASH KEY: FechaVenta | CodigoTienda | NumeroTicket | NumeroLinea
+
 CREATE TABLE dbo.FactVentas
 (
     VentaHashKey                    BINARY(32) NOT NULL,
@@ -644,6 +636,7 @@ CREATE TABLE dbo.FactVentas
     FechaUltimaModificacionDW       DATETIME2(3) NULL
 );
 
+
 ;WITH Numeros AS
 (
     SELECT 1 AS N
@@ -664,16 +657,14 @@ Base AS
 
         ((N - 1) % 3) + 1 AS NumeroLinea,
 
-        ((((N - 1) / 3) % 15) + 1) AS IdTienda,
+        (((N - 1) / 3) % 15) + 1 AS IdTienda,
 
-        ((((((N - 1) / 3) + 1) * 7) - 1) % 120) + 1
-            AS IdCliente,
+        ((((((N - 1) / 3) + 1) * 7) - 1) % 120) + 1 AS IdCliente,
 
-        (((N * 11) - 1) % 80) + 1
-            AS IdProducto,
+        (((N * 11) - 1) % 80) + 1 AS IdProducto,
 
-        (N % 4) + 1
-            AS Cantidad
+        (N % 4) + 1 AS Cantidad
+
     FROM Numeros
 ),
 
@@ -736,7 +727,6 @@ SELECT
     HASHBYTES
     (
         'SHA2_256',
-
         CONCAT(
             CONVERT(VARCHAR(10), V.FechaVenta, 23),
             '|',
@@ -851,7 +841,12 @@ CROSS APPLY
 OPTION (MAXRECURSION 0);
 
 
---TABLA STAGE VENTAS
+/*
+========================
+CREACIÓN DE STAGE VENTAS
+========================
+*/
+
 
 CREATE TABLE dbo.stg_Ventas
 (
@@ -896,6 +891,7 @@ CREATE TABLE dbo.stg_Ventas
     FechaUltimaModificacionOrigen   DATETIME2(3) NULL
 );
 
+
 ;WITH Numeros AS
 (
     SELECT 1 AS N
@@ -925,6 +921,7 @@ StageBase AS
             ELSE
                 ((N - 121) % 3) + 1
         END AS NumeroLinea
+
     FROM Numeros
 ),
 
@@ -935,7 +932,7 @@ StageClaves AS
 
         CASE
             WHEN N <= 120
-                THEN ((((IdTicket - 1) % 15) + 1))
+                THEN ((IdTicket - 1) % 15) + 1
 
             WHEN N % 90 = 0
                 THEN 17
@@ -944,31 +941,31 @@ StageClaves AS
                 THEN 16
 
             ELSE
-                (((N * 5) - 1) % 15) + 1
+                ((N * 5 - 1) % 15) + 1
         END AS IdTienda,
 
 
         CASE
             WHEN N <= 120
-                THEN ((((IdTicket * 7) - 1) % 120) + 1)
+                THEN ((IdTicket * 7 - 1) % 120) + 1
 
             WHEN N % 18 = 0
                 THEN 121 + ((N / 18) % 10)
 
             ELSE
-                (((N * 7) - 1) % 120) + 1
+                ((N * 7 - 1) % 120) + 1
         END AS IdCliente,
 
 
         CASE
             WHEN N <= 120
-                THEN (((N * 11) - 1) % 80) + 1
+                THEN ((N * 11 - 1) % 80) + 1
 
             WHEN N % 20 = 0
                 THEN 81 + ((N / 20) % 10)
 
             ELSE
-                (((N * 13) - 1) % 80) + 1
+                ((N * 13 - 1) % 80) + 1
         END AS IdProducto
 
     FROM StageBase S
@@ -1044,7 +1041,6 @@ INSERT INTO dbo.stg_Ventas
 SELECT
 
     S.FechaVenta,
-
     T.CodigoTienda,
 
     CONCAT(
@@ -1065,35 +1061,44 @@ SELECT
     C.Apellidos,
 
     CASE
-        WHEN C.IdCliente IN (7,14,21,35,49)
-            THEN CONCAT(
-                'actualizado',
-                C.IdCliente,
-                '@correo.pe'
-            )
+        WHEN C.IdCliente = 7
+            THEN 'ana.actualizada007@correo.pe'
+
+        WHEN C.IdCliente = 35
+            THEN 'cliente035.actualizado@correo.pe'
+
+        WHEN C.IdCliente = 49
+            THEN 'cliente049.actualizado@correo.pe'
+
         ELSE C.Email
     END,
 
     CASE
-        WHEN C.IdCliente IN (7,14,21,35,49)
-            THEN CONCAT(
-                '98',
-                RIGHT(
-                    '0000000' +
-                    CAST(C.IdCliente AS VARCHAR(7)),
-                    7
-                )
-            )
+        WHEN C.IdCliente = 14
+            THEN '989000014'
+
+        WHEN C.IdCliente = 35
+            THEN '989000035'
+
         ELSE C.Telefono
     END,
 
     CASE
         WHEN C.IdCliente = 21
             THEN 'LIMA'
+
+        WHEN C.IdCliente = 49
+            THEN 'AREQUIPA'
+
         ELSE C.Ciudad
     END,
 
-    C.EstadoCliente,
+    CASE
+        WHEN C.IdCliente = 49
+            THEN 'INACTIVO'
+
+        ELSE C.EstadoCliente
+    END,
 
 
     P.CodigoProducto,
@@ -1242,14 +1247,26 @@ INNER JOIN #TiendaCatalogo T
 OPTION (MAXRECURSION 0);
 
 
---TABLA STAGE LISTA PARA PROCESAR
+/*
+=================================
+TABLA STAGE LISTA PARA PROCESAR
+=================================
+*/
+
 
 SELECT TOP (0)
     *
 INTO dbo.tmp_stg_Ventas_process
 FROM dbo.stg_Ventas;
 
---ELIMINAR TABLAS TEMPORALES
+
+/*
+============================
+ELIMINAR TABLAS TEMPORALES
+============================
+*/
+
+
 DROP TABLE #ClienteCatalogo;
 DROP TABLE #ProductoCatalogo;
 DROP TABLE #TiendaCatalogo;

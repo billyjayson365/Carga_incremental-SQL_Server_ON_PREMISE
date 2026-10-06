@@ -28,3 +28,7 @@ tb_datos_process AS (
 INSERT INTO tmp_stg_ventas_process
 SELECT *
 FROM tb_datos_process;
+
+
+select *
+from tmp_stg_Ventas_process
