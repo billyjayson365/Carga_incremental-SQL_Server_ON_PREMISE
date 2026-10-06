@@ -1,5 +1,8 @@
---DIM CLIENTE -> Tipo SCD1, lo que quiere decir que la información solo se actualiza, 
---no se guarda el histórico (esto se define según reglas del negocio.)
+/*
+DIM CLIENTE -> 
+Tipo SCD2, lo que quiere decir que la información se actualiza y guarda el histórico.
+*/
+DROP TABLE IF EXISTS #tmp_stg_cliente;
 
 WITH tb_pre_cliente AS (
 	SELECT DISTINCT
@@ -21,5 +24,37 @@ SELECT
 		'SHA2_256', 
 		CONCAT(TipoDocumento, '|', NumeroDocumento)
 	) AS HashKeyCliente
+INTO #tmp_stg_cliente
 FROM 
-	tb_pre_cliente
+	tb_pre_cliente;
+
+--DETECCIÓN DE REGISTROS EXISTENTES CON MODIFICACIONES
+SELECT 
+	*
+FROM 
+	#tmp_stg_cliente AS stg
+INNER JOIN 
+	DimCliente AS dim
+ON 
+	(stg.hashkeycliente = dim.ClienteHashKey AND dim.EsActual = 1) 
+WHERE
+	(stg.Nombres <> dim.Nombres OR 
+	stg.apellidos <> dim.Apellidos OR 
+	ISNULL(stg.email, '') <> ISNULL(dim.email, '') OR 
+	ISNULL(stg.Telefono, '') <> ISNULL(dim.Telefono, '') OR 
+	ISNULL(stg.CiudadCliente, '') <> ISNULL(dim.Ciudad, ''))
+
+
+--DETECCIÓN DE REGISTROS NUEVOS
+SELECT 
+	*
+FROM 
+	#tmp_stg_cliente AS stg
+LEFT JOIN 
+	DimCliente AS dim
+ON 
+	(stg.hashkeycliente = dim.ClienteHashKey AND dim.EsActual = 1)
+WHERE
+	dim.ClienteHashKey IS NULL
+
+DROP TABLE IF EXISTS #tmp_stg_cliente;
