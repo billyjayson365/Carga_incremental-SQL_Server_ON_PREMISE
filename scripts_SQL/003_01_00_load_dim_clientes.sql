@@ -28,9 +28,15 @@ INTO #tmp_stg_cliente
 FROM 
 	tb_pre_cliente;
 
---DETECCIÓN DE REGISTROS EXISTENTES CON MODIFICACIONES
-SELECT 
-	*
+DECLARE @fechahora DATETIME = GETDATE();
+
+--DETECCIÓN Y ACTUALIZACIÓN DE REGISTROS EXISTENTES CON MODIFICACIONES
+UPDATE dim
+SET
+	dim.EsActual = 0,
+	dim.FechaFinVigencia = @fechahora,
+	dim.EstadoCliente = 'INACTIVO',
+	dim.FechaUltimaModificacionDW = @fechahora
 FROM 
 	#tmp_stg_cliente AS stg
 INNER JOIN 
@@ -44,10 +50,23 @@ WHERE
 	ISNULL(stg.Telefono, '') <> ISNULL(dim.Telefono, '') OR 
 	ISNULL(stg.CiudadCliente, '') <> ISNULL(dim.Ciudad, ''))
 
-
---DETECCIÓN DE REGISTROS NUEVOS
+--DETECCIÓN Y ACTUALIZACIÓN DE REGISTROS NUEVOS
+INSERT INTO DimCliente
 SELECT 
-	*
+	stg.HashKeyCliente,
+	stg.TipoDocumento,
+	stg.NumeroDocumento,
+	stg.Nombres,
+	stg.Apellidos,
+	stg.Email,
+	stg.Telefono,
+	stg.CiudadCliente,
+	'ACTIVO' AS EstadoCliente,
+	@fechahora AS FechaInicioVigencia,
+	'9999-12-31 23:59:59.999' AS FechaFinVigencia,
+	1 AS EsActual,
+	@fechahora AS FechaInsercionDW,
+	null AS FechaUltimaModificacionDW
 FROM 
 	#tmp_stg_cliente AS stg
 LEFT JOIN 
