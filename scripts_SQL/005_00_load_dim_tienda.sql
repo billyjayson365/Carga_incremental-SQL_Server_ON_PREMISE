@@ -4,6 +4,9 @@ DIMTIENDA -> Tipo SCD1
 ===========================
 */
 
+--FECHA DE PROCESO
+DECLARE @fechahora DATETIME = GETDATE();
+
 --ELIMINACIÓN DE LA TABLA TEMPORAL
 DROP TABLE IF EXISTS #tmp_DimTienda;
 
@@ -42,7 +45,7 @@ SET
 	dim.Departamento = tmp.DepartamentoTienda,
 	dim.TipoTienda = tmp.TipoTienda,
 	dim.EstadoTienda = tmp.EstadoTienda,
-	FechaUltimaModificacionDW = GETDATE()
+	FechaUltimaModificacionDW = @fechahora
 FROM 
 	#tmp_DimTienda AS tmp
 INNER JOIN
@@ -76,7 +79,7 @@ SELECT
 	tmp.DepartamentoTienda,
 	tmp.TipoTienda,
 	tmp.EstadoTienda,
-	GETDATE() AS FechaInsercionDW,
+	@fechahora AS FechaInsercionDW,
 	NULL AS FechaUltimaModificacion
 FROM 
 	#tmp_DimTienda AS tmp
