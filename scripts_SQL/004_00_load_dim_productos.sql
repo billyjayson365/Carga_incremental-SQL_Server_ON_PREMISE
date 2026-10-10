@@ -13,7 +13,7 @@ WITH tb_pre_productos AS (
 	SELECT DISTINCT
 		HASHBYTES(
 			'SHA2_256',
-			CodigoProducto
+			UPPER(TRIM(CodigoProducto))
 		) AS HashKeyProducto,
 		CodigoProducto,
 		NombreProducto,
@@ -53,13 +53,24 @@ ON
 WHERE
 	tmp.NombreProducto <> dim.NombreProducto OR 
 	tmp.Categoria <> dim.Categoria OR
-	tmp.Subcategoria <> dim.Subcategoria OR
-	tmp.Marca <> dim.Marca OR
+	COALESCE(tmp.Subcategoria, '') <> COALESCE(dim.Subcategoria, '') OR
+	COALESCE(tmp.Marca, '') <> COALESCE(dim.Marca, '') OR
 	tmp.PrecioLista <> dim.PrecioLista OR
 	tmp.EstadoProducto <> dim.EstadoProducto;
 
 --IDENTIFICACIÓN DE PRODUCTOS NUEVOS
-INSERT INTO DimProducto
+INSERT INTO DimProducto (
+	ProductoHashKey,
+	CodigoProducto,
+	NombreProducto,
+	Categoria,
+	Subcategoria,
+	Marca,
+	PrecioLista,
+	EstadoProducto,
+	FechaInsercionDW,
+	FechaUltimaModificacionDW
+)
 SELECT 
 	tmp.HashKeyProducto,
 	tmp.CodigoProducto,

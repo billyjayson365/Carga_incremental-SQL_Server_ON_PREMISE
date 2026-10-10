@@ -51,7 +51,22 @@ WHERE
 	ISNULL(stg.CiudadCliente, '') <> ISNULL(dim.Ciudad, ''))
 
 --DETECCIÓN Y ACTUALIZACIÓN DE REGISTROS NUEVOS
-INSERT INTO DimCliente
+INSERT INTO DimCliente (
+	ClienteHashKey,
+	TipoDocumento,
+	NumeroDocumento,
+	Nombres,
+	Apellidos,
+	Email,
+	Telefono,
+	Ciudad,
+	EstadoCliente,
+	FechaInicioVigencia,
+	FechaFinVigencia,
+	EsActual,
+	FechaInsercionDW,
+	FechaUltimaModificacionDW
+)
 SELECT 
 	stg.HashKeyCliente,
 	stg.TipoDocumento,
