@@ -32,7 +32,6 @@ INTO #tmp_dim_producto
 FROM
 	tb_pre_productos;
 
-
 --IDENTIFICACIÓN DE PRODUCTOS YA EXISTENTES PERO CON MODIFICACIONES
 UPDATE
 	dim
