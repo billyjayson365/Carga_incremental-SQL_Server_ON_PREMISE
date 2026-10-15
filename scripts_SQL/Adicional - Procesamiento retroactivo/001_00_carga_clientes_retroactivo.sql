@@ -5,6 +5,9 @@ Se utiliza el watermark para poder filtrar los nuevos datos provinientes del nue
 ======================
 */
 
+--FECHA Y HORA DEL PROCESO
+DECLARE @FechaHoraActual DATETIME = GETDATE();
+
 DROP TABLE IF EXISTS #tmp_stg_process;
 DROP TABLE IF EXISTS #tmp_dimcliente_process;
 
@@ -68,6 +71,21 @@ WHERE
     cli.Ciudad <> tmp.CiudadCliente;
 
 --2.2. IDENTIFCACIÓN DE NUEVOS CLIENTES O VERSIONES DE CLIENTES YA EXISTENTES PERO CUYAS VERSIONES NO SE ENCUENTRAN EN LA DIMENSIÓN
+
+--2.2.1. INSERCIÓN DE NUEVOS CLIENTES O VERSIONES NUEVAS DE CLIENTES YA EXISTENTES
+INSERT INTO LabSCD2.DimCliente (
+    ClienteHashKey,
+    TipoDocumento,
+    NumeroDocumento,
+    Nombres,
+    Apellidos,
+    Ciudad,
+    FechaInicioVigencia,
+    FechaFinVigencia,
+    EsActual,
+    FechaInsercionDW,
+    FechaUltimaModificacionDW
+)
 SELECT 
     tmp.HashKeyCliente,
     tmp.TipoDocumento,
@@ -75,7 +93,11 @@ SELECT
     tmp.Nombres,
     tmp.Apellidos,
     tmp.CiudadCliente,
-    tmp.FechaCambioCliente
+    tmp.FechaCambioCliente,
+   '9999-12-31' AS FechaFinVigencia,
+   0 AS EsActual,
+   @FechaHoraActual AS FechaInsercionDW,
+   null AS FechaUltimaModificacionDW
 FROM 
     LabSCD2.DimCliente AS cli
 RIGHT JOIN 
@@ -85,6 +107,27 @@ ON
     cli.FechaInicioVigencia = tmp.FechaCambioCliente
 WHERE
     cli.ClienteHashKey IS NULL;
+
+--PROCESO RETROACTIVO PARA IDENTIFICAR CUÁL ES LA VERSIÓN VIGENTE A DÍA DE HOY
+WITH tb_rn AS (
+    SELECT 
+        *,
+        ROW_NUMBER() OVER(
+            PARTITION BY ClienteHashKey
+            ORDER BY FechaInicioVigencia DESC
+        ) AS rn
+    FROM 
+        LabSCD2.DimCliente
+)
+
+SELECT *
+FROM tb_rn
+WHERE rn = 1;
+--FALTA MEJORAR LA EFICIENCIA: PRIMERO IDENTIFICAR ÚNICAMENTE A LOS CLIENTES QUE TIENE CAMBIOS Y 
+--NO HACER UN CRUCE CON TODOS LOS DE LA DIMENSIÓN QUE PUEDEN SER MILLONES DE DATOS
+--¿CÓMO HAGO LA SIGUIENTE ACTUALIZACIÓN? -> A LOS ÚLTIMOS VIGENTES COLOCARLES ESACTUAL = 1 Y A LOS QUE QUE TIENEN ES ACTUAL 1 PERO YA NO SON
+--VERSIONES ACTUALES, COLOCARLE 0
+--CÓMO SER SELECTIVO Y SOLO AFECTAR A LOS CLIENTES QUE VIENEN EN EL ORIGEN Y NO A TODO EL UNIVERSO DE CLIENTES
 
 --LIMPIEZA DE TABLAS TEMPORALES
 DROP TABLE IF EXISTS #tmp_stg_process;
