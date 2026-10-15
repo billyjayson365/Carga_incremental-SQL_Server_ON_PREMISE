@@ -46,7 +46,6 @@ INTO #tmp_dimcliente_process
 FROM 
     #tmp_stg_process;
 
-
 --2.1. CRUCE PARA ENCONTRAR AQUELLOS CLIENTES QUE EXISTEN Y TIENEN MODIFICACIONES: 
 --Se realiza alguna corrección de algún atributo en caso lo haya.
 
@@ -65,8 +64,27 @@ ON
     cli.FechaInicioVigencia = tmp.FechaCambioCliente
 WHERE
     cli.Nombres <> tmp.Nombres OR
-    cli.Apellidos <> tmp.Apellidos OR
-    cli.Ciudad <> tmp.CiudadCliente
+    COALESCE(cli.Apellidos, '') <> COALESCE(tmp.Apellidos, '') OR
+    cli.Ciudad <> tmp.CiudadCliente;
+
+--2.2. IDENTIFCACIÓN DE NUEVOS CLIENTES O VERSIONES DE CLIENTES YA EXISTENTES PERO CUYAS VERSIONES NO SE ENCUENTRAN EN LA DIMENSIÓN
+SELECT 
+    tmp.HashKeyCliente,
+    tmp.TipoDocumento,
+    tmp.NumeroDocumento,
+    tmp.Nombres,
+    tmp.Apellidos,
+    tmp.CiudadCliente,
+    tmp.FechaCambioCliente
+FROM 
+    LabSCD2.DimCliente AS cli
+RIGHT JOIN 
+    #tmp_dimcliente_process AS tmp
+ON 
+    cli.ClienteHashKey = tmp.HashKeyCliente AND 
+    cli.FechaInicioVigencia = tmp.FechaCambioCliente
+WHERE
+    cli.ClienteHashKey IS NULL;
 
 --LIMPIEZA DE TABLAS TEMPORALES
 DROP TABLE IF EXISTS #tmp_stg_process;
