@@ -16,7 +16,7 @@ SELECT
     TRIM(NumeroDocumento) AS NumeroDocumento,
     TRIM(Nombres) AS Nombres,
     TRIM(Apellidos) AS Apellidos,
-    TRIM(CiudadCliente) AS CiudadCliente,
+    UPPER(TRIM(CiudadCliente)) AS CiudadCliente,
     FechaCambioCliente,
     FechaInsercionOrigen,
     FechaUltimaModificacionOrigen,
@@ -35,6 +35,7 @@ WHERE
 */
 
 SELECT DISTINCT
+    HASHBYTES('SHA2_256', CONCAT(TipoDocumento, '|', NumeroDocumento)) AS HashKeyCliente,
     TipoDocumento,
     NumeroDocumento,
     Nombres,
@@ -45,11 +46,28 @@ INTO #tmp_dimcliente_process
 FROM 
     #tmp_stg_process;
 
-SELECT *
-FROM #tmp_dimcliente_process;
 
-SELECT *
-FROM LabSCD2.DimCliente;
+--2.1. CRUCE PARA ENCONTRAR AQUELLOS CLIENTES QUE EXISTEN Y TIENEN MODIFICACIONES: 
+--Se realiza alguna corrección de algún atributo en caso lo haya.
 
+UPDATE cli 
+SET
+    cli.Nombres = tmp.Nombres,
+    cli.Apellidos = tmp.Apellidos,
+    cli.Ciudad = tmp.CiudadCliente,
+    cli.FechaUltimaModificacionDW = GETDATE()
+FROM 
+    LabSCD2.DimCliente AS cli
+INNER JOIN 
+    #tmp_dimcliente_process AS tmp
+ON 
+    cli.ClienteHashKey = tmp.HashKeyCliente AND 
+    cli.FechaInicioVigencia = tmp.FechaCambioCliente
+WHERE
+    cli.Nombres <> tmp.Nombres OR
+    cli.Apellidos <> tmp.Apellidos OR
+    cli.Ciudad <> tmp.CiudadCliente
+
+--LIMPIEZA DE TABLAS TEMPORALES
 DROP TABLE IF EXISTS #tmp_stg_process;
 DROP TABLE IF EXISTS #tmp_dimcliente_process;
