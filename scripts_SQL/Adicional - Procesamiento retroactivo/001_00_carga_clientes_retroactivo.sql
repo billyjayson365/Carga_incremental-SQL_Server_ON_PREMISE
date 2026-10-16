@@ -10,6 +10,7 @@ DECLARE @FechaHoraActual DATETIME = GETDATE();
 
 DROP TABLE IF EXISTS #tmp_stg_process;
 DROP TABLE IF EXISTS #tmp_dimcliente_process;
+DROP TABLE IF EXISTS #tmp_clientesinsertados;
 
 --SE CREA LA TABLA TEMPORAL DEL CONJUNTO DE DATOS A PROCESAR
 SELECT
@@ -73,6 +74,11 @@ WHERE
 --2.2. IDENTIFCACIÓN DE NUEVOS CLIENTES O VERSIONES DE CLIENTES YA EXISTENTES PERO CUYAS VERSIONES NO SE ENCUENTRAN EN LA DIMENSIÓN
 
 --2.2.1. INSERCIÓN DE NUEVOS CLIENTES O VERSIONES NUEVAS DE CLIENTES YA EXISTENTES
+--Se añade también proceso de captura de los clientes insertados en una tb tmp
+CREATE TABLE #tmp_clientesinsertados (
+    HashKeyCliente BINARY(32) not null
+);
+
 INSERT INTO LabSCD2.DimCliente (
     ClienteHashKey,
     TipoDocumento,
@@ -86,6 +92,11 @@ INSERT INTO LabSCD2.DimCliente (
     FechaInsercionDW,
     FechaUltimaModificacionDW
 )
+
+--Capturamos a los clientes insertados
+OUTPUT inserted.ClienteHashKey
+INTO #tmp_clientesinsertados(HashKeyCliente)
+
 SELECT 
     tmp.HashKeyCliente,
     tmp.TipoDocumento,
@@ -108,27 +119,69 @@ ON
 WHERE
     cli.ClienteHashKey IS NULL;
 
---PROCESO RETROACTIVO PARA IDENTIFICAR CUÁL ES LA VERSIÓN VIGENTE A DÍA DE HOY
-WITH tb_rn AS (
+--IDENTIFICACIÓN DE LOS CLIENTES INSERTADOS Y MODIFICACIÓN DE FECHAS DE VIGENCIA FINAL Y ESTADO ACTUAL:
+WITH 
+tb_clientes_insertados_unicos AS (
+    SELECT DISTINCT
+        HashKeyCliente
+    FROM 
+        #tmp_clientesinsertados
+),
+tb_dim_cliente_pre AS (
+    SELECT 
+        *
+    FROM 
+        LabSCD2.DimCliente AS dim
+    INNER JOIN 
+        tb_clientes_insertados_unicos AS cliu
+    ON 
+        dim.ClienteHashKey = cliu.HashKeyCliente
+), 
+tb_dimcliente3 AS (
     SELECT 
         *,
-        ROW_NUMBER() OVER(
-            PARTITION BY ClienteHashKey
-            ORDER BY FechaInicioVigencia DESC
-        ) AS rn
+        LEAD(FechaInicioVigencia) OVER(
+            PARTITION BY HashKeyCliente
+            ORDER BY FechaInicioVigencia ASC
+        ) AS VerificacionUltimaVersion
     FROM 
-        LabSCD2.DimCliente
+        tb_dim_cliente_pre
+), 
+tb_dimcliente_recal AS (
+    SELECT 
+        *,
+        COALESCE(VerificacionUltimaVersion, '9999-12-31 23:59:59') AS NuevaFechaFinVigencia,
+        CASE
+            WHEN VerificacionUltimaVersion IS NULL
+                THEN 1
+            ELSE 0
+        END AS EstadoActual
+    FROM tb_dimcliente3
 )
 
-SELECT *
-FROM tb_rn
-WHERE rn = 1;
---FALTA MEJORAR LA EFICIENCIA: PRIMERO IDENTIFICAR ÚNICAMENTE A LOS CLIENTES QUE TIENE CAMBIOS Y 
---NO HACER UN CRUCE CON TODOS LOS DE LA DIMENSIÓN QUE PUEDEN SER MILLONES DE DATOS
---¿CÓMO HAGO LA SIGUIENTE ACTUALIZACIÓN? -> A LOS ÚLTIMOS VIGENTES COLOCARLES ESACTUAL = 1 Y A LOS QUE QUE TIENEN ES ACTUAL 1 PERO YA NO SON
---VERSIONES ACTUALES, COLOCARLE 0
---CÓMO SER SELECTIVO Y SOLO AFECTAR A LOS CLIENTES QUE VIENEN EN EL ORIGEN Y NO A TODO EL UNIVERSO DE CLIENTES
+UPDATE dim
+SET
+    dim.FechaFinVigencia = re.NuevaFechaFinVigencia,
+    dim.EsActual = re.EstadoActual,
+    dim.FechaUltimaModificacionDW = @FechaHoraActual
+FROM 
+    LabSCD2.DimCliente AS dim
+INNER JOIN 
+    tb_dimcliente_recal AS re
+ON 
+    dim.ClienteSK = re.ClienteSK
+WHERE
+    dim.FechaFinVigencia <> re.NuevaFechaFinVigencia OR
+    dim.EsActual <> re.EstadoActual;
 
 --LIMPIEZA DE TABLAS TEMPORALES
 DROP TABLE IF EXISTS #tmp_stg_process;
 DROP TABLE IF EXISTS #tmp_dimcliente_process;
+DROP TABLE IF EXISTS #tmp_clientesinsertados;
+
+
+/*
+========================================================
+EJERCICIO FINALIZADO
+========================================================
+*/
