@@ -31,7 +31,7 @@ INTO #tmp_stg_process
 FROM 
     LabSCD2.VentasOrigen
 WHERE 
-    COALESCE(FechaUltimaModificacionOrigen, FechaInsercionOrigen) >= (SELECT UltimaMarcaAgua FROM LabSCD2.ControlCarga);
+    COALESCE(FechaUltimaModificacionOrigen, FechaInsercionOrigen) > (SELECT UltimaMarcaAgua FROM LabSCD2.ControlCarga);
 
 /*
 =====================================
@@ -235,7 +235,9 @@ UPDATE
 SET 
     UltimaMarcaAgua = @NuevaMarcaDeAgua
 WHERE 
-    NombreProceso = 'ETL_Clientes';
+    NombreProceso = 'ETL_Clientes' AND 
+    @NuevaMarcaDeAgua IS NOT NULL AND
+    @NuevaMarcaDeAgua > UltimaMarcaAgua;
 
 --LIMPIEZA DE TABLAS TEMPORALES
 DROP TABLE IF EXISTS #tmp_stg_process;
