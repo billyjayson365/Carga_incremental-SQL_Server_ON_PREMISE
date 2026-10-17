@@ -6,6 +6,7 @@ Se utiliza el watermark para poder filtrar los nuevos datos provinientes del nue
 */
 
 --FECHA Y HORA DEL PROCESO
+DECLARE @NuevaMarcaDeAgua DATETIME;
 DECLARE @FechaHoraActual DATETIME = GETDATE();
 
 DROP TABLE IF EXISTS #tmp_stg_process;
@@ -58,7 +59,7 @@ SET
     cli.Nombres = tmp.Nombres,
     cli.Apellidos = tmp.Apellidos,
     cli.Ciudad = tmp.CiudadCliente,
-    cli.FechaUltimaModificacionDW = GETDATE()
+    cli.FechaUltimaModificacionDW = @FechaHoraActual
 FROM 
     LabSCD2.DimCliente AS cli
 INNER JOIN 
@@ -129,7 +130,19 @@ tb_clientes_insertados_unicos AS (
 ),
 tb_dim_cliente_pre AS (
     SELECT 
-        *
+        cliu.HashKeyCliente,
+        dim.ClienteSK,
+        dim.ClienteHashKey,
+        dim.TipoDocumento,
+        dim.NumeroDocumento,
+        dim.nombres,
+        dim.Apellidos,
+        dim.Ciudad,
+        dim.FechaInicioVigencia,
+        dim.FechaFinVigencia,
+        dim.EsActual,
+        dim.FechaInsercionDW,
+        dim.FechaUltimaModificacionDW
     FROM 
         LabSCD2.DimCliente AS dim
     INNER JOIN 
@@ -139,7 +152,19 @@ tb_dim_cliente_pre AS (
 ), 
 tb_dimcliente3 AS (
     SELECT 
-        *,
+        HashKeyCliente,
+        ClienteSK,
+        ClienteHashKey,
+        TipoDocumento,
+        NumeroDocumento,
+        nombres,
+        Apellidos,
+        Ciudad,
+        FechaInicioVigencia,
+        FechaFinVigencia,
+        EsActual,
+        FechaInsercionDW,
+        FechaUltimaModificacionDW,
         LEAD(FechaInicioVigencia) OVER(
             PARTITION BY HashKeyCliente
             ORDER BY FechaInicioVigencia ASC
@@ -149,7 +174,20 @@ tb_dimcliente3 AS (
 ), 
 tb_dimcliente_recal AS (
     SELECT 
-        *,
+        HashKeyCliente,
+        ClienteSK,
+        ClienteHashKey,
+        TipoDocumento,
+        NumeroDocumento,
+        nombres,
+        Apellidos,
+        Ciudad,
+        FechaInicioVigencia,
+        FechaFinVigencia,
+        EsActual,
+        FechaInsercionDW,
+        FechaUltimaModificacionDW,
+        VerificacionUltimaVersion,
         COALESCE(VerificacionUltimaVersion, '9999-12-31 23:59:59') AS NuevaFechaFinVigencia,
         CASE
             WHEN VerificacionUltimaVersion IS NULL
@@ -174,11 +212,35 @@ WHERE
     dim.FechaFinVigencia <> re.NuevaFechaFinVigencia OR
     dim.EsActual <> re.EstadoActual;
 
+/*
+=================================================
+3. ACTUALIZACIÓN DE TABLA DE CONTROL - WATERMARK
+=================================================
+*/
+
+--Identificar la fecha máxima de la tabla stg_process, entre las columnas fecha de inserción origen y fecha de actualización de registro
+SELECT 
+    @NuevaMarcaDeAgua = 
+    CASE
+        WHEN MAX(FechaUltimaModificacionOrigen) > MAX(FechaInsercionOrigen)
+            THEN MAX(FechaUltimaModificacionOrigen)
+        ELSE MAX(FechaInsercionOrigen)
+    END
+FROM 
+    #tmp_stg_process;
+
+--Actualización del registro
+UPDATE 
+    LabSCD2.ControlCarga
+SET 
+    UltimaMarcaAgua = @NuevaMarcaDeAgua
+WHERE 
+    NombreProceso = 'ETL_Clientes';
+
 --LIMPIEZA DE TABLAS TEMPORALES
 DROP TABLE IF EXISTS #tmp_stg_process;
 DROP TABLE IF EXISTS #tmp_dimcliente_process;
 DROP TABLE IF EXISTS #tmp_clientesinsertados;
-
 
 /*
 ========================================================
